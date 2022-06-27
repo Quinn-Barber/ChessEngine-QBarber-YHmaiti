@@ -4405,6 +4405,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1115825883}
   - component: {fileID: 1115825882}
+  - component: {fileID: 1115825884}
   m_Layer: 0
   m_Name: chessPieces
   m_TagString: Untagged
@@ -4511,6 +4512,20 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1115825884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1115825880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03096856b39f69e489f09293b026a43a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _player1AI: 0
+  _player2AI: 0
 --- !u!1 &1143216437
 GameObject:
   m_ObjectHideFlags: 0
