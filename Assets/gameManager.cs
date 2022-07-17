@@ -17,6 +17,7 @@ public class gameManager : MonoBehaviour
 
 	// 2D Array for the pieces on the chess board
 	public static GameObject[][] board;
+	public static bool[][] pieceMoved;
 
 	// Variables for enPassent management
 	public static GameObject lastPiece = null;
@@ -29,15 +30,18 @@ public class gameManager : MonoBehaviour
 		PlayerCam = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
 
 		// Initialize the chess board and turn order (true is whites move false is blacks move)
+		pieceMoved = new bool[8][];
 		board = new GameObject[8][];
 		turnOrder = true;
 
 		// Fill the chess board with each starting piece (using collisions based on rays from certain positions)
 		for (int i = 0; i < 8; i++)
 		{
+			pieceMoved[i] = new bool[8];			
 			board[i] = new GameObject[8];
 			for (int j = 0; j < 8; j++)
 			{
+				pieceMoved[i][j] = false;
 				Ray ray;
 				RaycastHit hitInfo;
 				Vector2 pos = new Vector2((i + 1), (j + 1));
