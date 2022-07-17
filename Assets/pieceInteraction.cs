@@ -23,9 +23,11 @@ public class pieceInteraction : MonoBehaviour
 	bool pieceCaptured = false;
 	bool beingHeld = false;
     Vector2 origPos;
+	Vector2 rookMove;
+	Vector2 castleArr;
 
 	// Variable for castling
-	bool pieceMoved = false;
+	bool castle = false;
 
 	// Start is called before the first frame update 
 	void Start()
@@ -65,6 +67,7 @@ public class pieceInteraction : MonoBehaviour
 		// No piece is being held anymore as the mouse was unclicked so set this to false
         beingHeld = false;
 		pieceCaptured = false;
+		castle = false;
 
 		// The potential new position of the piece is the current position of the mouse snapped to the nearest square
 		Vector2 newPos = new Vector2((float)Math.Round(this.gameObject.transform.position.x), (float)Math.Round(this.gameObject.transform.position.y));
@@ -111,23 +114,60 @@ public class pieceInteraction : MonoBehaviour
 			}
 		}
 
-		// If it is legal and hasn't collided with anything, update the position and board as necessary (turn back on the collision as well)3
+		// If it is legal and is a castle implement the following method
+        if (castle)
+        {
+			// MOVE KING AND ROOK TO CORRESPONDING SPOT
+			this.gameObject.GetComponent<Collider>().enabled = true;
+			this.gameObject.transform.position = newPos;
+			gameManager.board[(int)castleArr.x - 1][(int)castleArr.y - 1].transform.position = rookMove;
+
+			// INDICATE PIECE HAS MOVEN
+			gameManager.pieceMoved[(int)origPos.x - 1][(int)origPos.y - 1] = true;
+			gameManager.pieceMoved[(int)castleArr.x - 1][(int)castleArr.y - 1] = true;
+
+
+			// UPDATE KING TO CORRECT SPOT ON BOARD
+			GameObject temp = gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1];
+			gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1] = gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1];
+			gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] = temp;
+
+
+			// UPDATE ROOK TO CORRECT SPOT ON BOARD
+			gameManager.board[(int)rookMove.x - 1][(int)rookMove.y - 1] = gameManager.board[(int)castleArr.x - 1][(int)castleArr.y - 1];
+			gameManager.board[(int)castleArr.x - 1][(int)castleArr.y - 1] = null;
+
+			// UPDATE TURN ORDER
+			gameManager.turnOrder = !gameManager.turnOrder;
+
+			return;
+		}
+
+		// If it is legal and hasn't collided with anything, update the position and board as necessary (turn back on the collision as well)
 		this.gameObject.GetComponent<Collider>().enabled = true;
 		this.gameObject.transform.position = newPos;
-		pieceMoved = true;
+		
+		// INDICATE PIECE HAS MOVEN
+		gameManager.pieceMoved[(int)origPos.x - 1][(int)origPos.y - 1] = true;
 
-		if(gameManager.doubleUp == true && gameManager.lastPiece != this.gameObject)
+		// EN PASSENT VARIABLES
+		if (gameManager.doubleUp == true && gameManager.lastPiece != this.gameObject)
         {
 			gameManager.doubleUp = false;
         }
+
+		// UPDATE THE BOARD TO BE CORRECT
 		GameObject tmp = gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1];
 		gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1] = gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1];
 		gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] = tmp;
-		gameManager.turnOrder = !gameManager.turnOrder;
         if (pieceCaptured)
         {
 			gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1] = null;
 		}
+
+		// UPDATE TURN ORDER
+		gameManager.turnOrder = !gameManager.turnOrder;
+
 	}
 
 	private bool isLegalMove(Vector2 newPos)
@@ -155,11 +195,15 @@ public class pieceInteraction : MonoBehaviour
                 }
 				else if(newPos.x == origPos.x + 2 || newPos.x == origPos.x - 2)
                 {
-					if ( !Castling(newPos))
+					if ( !Castling(newPos) )
                     {
 						Debug.Log("Not valid king move");
 						return false;
 					}
+                    else
+                    {
+						castle = true;
+                    }
                 }
 				break;
 			case "Queen":
@@ -376,32 +420,66 @@ public class pieceInteraction : MonoBehaviour
 
     }
 
-	// TO BE IMPLEMENTED
 	private bool Castling(Vector2 newPos)
     {
         if (this.gameObject.name.ToCharArray()[0] == 'W')
         {
 			if(newPos.x == origPos.x + 2)
             {
-				return false;
+				// If it is the wrong piece, or either piece has moven it is false
+				if(gameManager.board[(int)origPos.x - 1 + 4][(int)origPos.y - 1].name != "WhiteRookRight" || gameManager.pieceMoved[(int)origPos.x - 1][(int)origPos.y - 1] == true || gameManager.pieceMoved[(int)origPos.x - 1 + 4][(int)origPos.y - 1] == true)
+                {
+					return false;
+                }
+				// Otherwise update the vectors for which to access the rook from the board in the mouseup function
+				castleArr.x = origPos.x + 4;
+				castleArr.y = origPos.y;
+				rookMove = newPos;
+				rookMove.x -= 1;
             }
             else
             {
-				return false;
+				// If it is the wrong piece, or either piece has moven it is false
+				if (gameManager.board[(int)origPos.x - 1 - 3][(int)origPos.y - 1].name != "WhiteRookLeft" || gameManager.pieceMoved[(int)origPos.x - 1][(int)origPos.y - 1] == true || gameManager.pieceMoved[(int)origPos.x - 1 - 3][(int)origPos.y - 1] == true)
+				{
+					return false;
+				}
+				// Otherwise update the vectors for which to access the rook from the board in the mouseup function
+				castleArr.x = origPos.x - 3;
+				castleArr.y = origPos.y;
+				rookMove = newPos;
+				rookMove.x += 1;
 			}
         }
         else
         {
 			if (newPos.x == origPos.x + 2)
 			{
-				return false;
+				// If it is the wrong piece, or either piece has moven it is false
+				if (gameManager.board[(int)origPos.x - 1 + 4][(int)origPos.y - 1].name != "BlackRookRight" || gameManager.pieceMoved[(int)origPos.x - 1][(int)origPos.y - 1] == true || gameManager.pieceMoved[(int)origPos.x - 1 + 4][(int)origPos.y - 1] == true)
+				{
+					return false;
+				}
+				// Otherwise update the vectors for which to access the rook from the board in the mouseup function
+				castleArr.x = origPos.x + 4;
+				castleArr.y = origPos.y;
+				rookMove = newPos;
+				rookMove.x -= 1;
 			}
 			else
 			{
-				return false;
+				// If it is the wrong piece, or either piece has moven it is false
+				if (gameManager.board[(int)origPos.x - 1 - 3][(int)origPos.y - 1].name != "BlackRookLeft" || gameManager.pieceMoved[(int)origPos.x - 1][(int)origPos.y - 1] == true || gameManager.pieceMoved[(int)origPos.x - 1 - 3][(int)origPos.y - 1] == true)
+				{
+					return false;
+				}
+				// Otherwise update the vectors for which to access the rook from the board in the mouseup function
+				castleArr.x = origPos.x - 3;
+				castleArr.y = origPos.y;
+				rookMove = newPos;
+				rookMove.x += 1;
 			}
 		}
-
 		return true;
     }
 
