@@ -30,6 +30,9 @@ public class pieceInteraction : MonoBehaviour
 	bool castle = false;
 	bool enPassent = false;
 	bool promotion = false;
+	bool inCheck = false;
+	int checkAtX, checkAtY;
+	String checkBy;
 
 	// Start is called before the first frame update 
 	void Start()
@@ -72,8 +75,9 @@ public class pieceInteraction : MonoBehaviour
 		castle = false;
 		enPassent = false;
 		promotion = false;
+		inCheck = false;
 
-		for(int i = 0; i < 16; i++)
+		for (int i = 0; i < 16; i++)
         {
             if (gameManager.changeDoubleUp[i] == false)
             {
@@ -101,6 +105,29 @@ public class pieceInteraction : MonoBehaviour
 			this.gameObject.GetComponent<Collider>().enabled = true;
 			return;
 		}
+
+		inCheck = kingUnderAttack();
+		if(inCheck == true)
+        {
+			Debug.Log("In check by " + checkBy);
+			/*String debuglog = "";
+			for(int i = 7; i >= 0; i--)
+            {
+				for(int j = 0; j < 8; j++)
+                {
+					if(gameManager.board[j][i] == null)
+                    {
+						debuglog += ("None" + "\t");
+					}
+                    else
+                    {
+						debuglog += (gameManager.board[j][i].tag + "\t");
+					}
+                }
+				debuglog += ("\n");
+            }
+			Debug.Log(debuglog);*/
+		}
 		// Check if this move is legal, if it is not reenable this pieces collision and set it back to its original position, return.
 		if ( !isLegalMove(newPos) )
         {
@@ -123,7 +150,12 @@ public class pieceInteraction : MonoBehaviour
 
 			if (hitInfo.collider.gameObject.name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
 			{
-				// If they are not the same color, it is capturing the piece, update the chess board as necessary
+                // If they are not the same color, it is capturing the piece, update the chess board as necessary
+                if (!checkChecks((int)(origPos.x - 1), (int)(origPos.y - 1), (int)(newPos.x - 1), (int)(newPos.y - 1), true))
+                {
+					this.gameObject.transform.position = origPos;
+					return;
+                }
 				hitInfo.collider.gameObject.SetActive(false);
 				pieceCaptured = true;
 				this.gameObject.transform.position = newPos;
@@ -136,8 +168,15 @@ public class pieceInteraction : MonoBehaviour
 			}
 		}
 
+		if (!checkChecks((int)(origPos.x - 1), (int)(origPos.y - 1), (int)(newPos.x - 1), (int)(newPos.y - 1), pieceCaptured))
+		{
+			this.gameObject.GetComponent<Collider>().enabled = true;
+			this.gameObject.transform.position = origPos;
+			return;
+		}
+
 		// If it is legal and is a castle implement the following method
-        if (castle)
+		if (castle)
         {
 			// MOVE KING AND ROOK TO CORRESPONDING SPOT
 			this.gameObject.GetComponent<Collider>().enabled = true;
@@ -164,7 +203,7 @@ public class pieceInteraction : MonoBehaviour
 
 			return;
 		}
-
+		// If it is legal and is an en Passent implement the following method
         if (enPassent)
         {
 			if(this.gameObject.name.ToCharArray()[0] == 'B')
@@ -193,19 +232,27 @@ public class pieceInteraction : MonoBehaviour
 			gameManager.turnOrder = !gameManager.turnOrder;
 			return;
         }
-
-		/* TO BE IMPLEMENTED
+		// If it is legal and is a promotion implement the following method
 		if(promotion)
         {
-			//GameObject replace = GameObject.Instantiate("WhiteQueen");
+			GameObject replace;
+			if (gameManager.turnOrder == true)
+            {
+				replace = GameObject.Instantiate(gameManager.whiteQueen);
+			}
+            else
+            {
+				replace = GameObject.Instantiate(gameManager.blackQueen);
+			}
 
-			GameObject temp = gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1];
 			gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1] = null;
-			gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] = temp;
+			gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] = replace;
+			this.gameObject.SetActive(false);
+			replace.transform.position = newPos;
 
 			gameManager.turnOrder = !gameManager.turnOrder;
 			return;
-		}*/
+		}
 
 		// If it is legal and hasn't collided with anything, update the position and board as necessary (turn back on the collision as well)
 		this.gameObject.GetComponent<Collider>().enabled = true;
@@ -541,7 +588,6 @@ public class pieceInteraction : MonoBehaviour
 		return true;
     }
 
-	// NEED TO IMPLEMENT PROMOTION
 	private bool PawnMovement(Vector2 newPos)
     {
 		if (this.gameObject.name.ToCharArray()[0] == 'B')
@@ -658,6 +704,350 @@ public class pieceInteraction : MonoBehaviour
 				promotion = true;
             }
 		}
+		return true;
+    }
+
+	private bool kingUnderAttack()
+    {
+		int posX, posY;
+		posX = posY = -1;
+		bool breakLoop = false;
+		for(int i = 0; i < 8; i++)
+        {
+			for(int j = 0; j < 8; j++)
+            {
+				if(gameManager.board[(int)i][j] != null && gameManager.board[(int)i][j].tag == "King" && gameManager.board[(int)i][j].name.ToCharArray()[0] == this.gameObject.name.ToCharArray()[0])
+                {
+					posX = i;
+					posY = j;
+					breakLoop = true;
+					break;
+                }
+            }
+			if(breakLoop == true)
+            {
+				break;
+            }
+        }
+		if(posX == -1 || posY == -1)
+        {
+			return false;
+        }
+
+		bool breakOne, breakTwo, breakThree, breakFour, breakFive, breakSix;
+		breakOne = breakTwo = breakThree = breakFour = breakFive = breakSix = false;
+
+		for(int i = 0; i < 8; i++)
+        {
+			if(breakOne == false)
+            {
+                if(inBounds(i, posY))
+                {
+					if (gameManager.board[i][posY] != null && (gameManager.board[i][posY].tag == "Rook" || gameManager.board[i][posY].tag == "Queen"))
+					{
+						if (gameManager.board[i][posY].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+						{
+							if(i < posX)
+                            {
+								for(int j = 1; j < posX - i; j++)
+                                {
+									if(gameManager.board[i + j][posY] != null)
+                                    {
+										breakOne = true;
+										break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+								for(int j = 1; j < i - posX; j++)
+								{
+									if(gameManager.board[posX + j][posY] != null)
+									{
+										breakOne = true;
+										break;
+									}
+								}
+							}
+
+                            if (!breakOne)
+                            {
+								checkAtX = i;
+								checkAtY = posY;
+								checkBy = gameManager.board[i][posY].name;
+								Debug.Log("TRUE AT " + i + " " + posY);
+								return true;
+							}
+						}
+					}
+				}
+			}
+			if(breakTwo == false)
+            {
+                if(inBounds(posX, i))
+                {
+					if (gameManager.board[posX][i] != null && (gameManager.board[posX][i].tag == "Rook" || gameManager.board[posX][i].tag == "Queen"))
+					{
+						if (gameManager.board[posX][i].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+						{
+							if (i < posY)
+							{
+								for (int j = 1; j < posY - i; j++)
+								{
+									if (gameManager.board[posX][i + j] != null)
+									{
+										breakTwo = true;
+										break;
+									}
+								}
+							}
+							else
+							{
+								for (int j = 1; j < i - posY; j++)
+								{
+									if (gameManager.board[posX][posY + j] != null)
+									{
+										breakTwo = true;
+										break;
+									}
+								}
+							}
+
+							if (!breakTwo)
+                            {
+								checkAtX = posX;
+								checkAtY = i;
+								checkBy = gameManager.board[posX][i].name;
+								Debug.Log("TRUE AT " + posX + " " + i);
+								return true;
+							}
+						}
+					}
+				}
+			}
+			if(breakThree == false)
+            {
+				if (inBounds(posX - i, posY - i))
+				{
+					if (gameManager.board[posX - i][posY - i] != null && (gameManager.board[posX - i][posY - i].tag == "Bishop" || gameManager.board[posX - i][posY - i].tag == "Queen"))
+					{
+						if (gameManager.board[posX - i][posY - i].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+						{
+							for(int j = 1; (posY - i + j) < posY; j++)
+                            {
+                                if (gameManager.board[posX - i + j][posY - i + j] != null)
+                                {
+									breakThree = true;
+                                }
+                            }
+
+							if (!breakThree)
+                            {
+								checkAtX = posX - i;
+								checkAtY = posY - i;
+								checkBy = gameManager.board[posX - i][posY - i].name;
+								Debug.Log("TRUE AT " + (posX - i) + " " + (posY - i));
+								return true;
+							}
+						}
+					}
+				}
+			}
+			if(breakFour == false)
+            {
+				if (inBounds(posX + i, posY + i))
+				{
+					if (gameManager.board[posX + i][posY + i] != null && (gameManager.board[posX + i][posY + i].tag == "Bishop" || gameManager.board[posX + i][posY + i].tag == "Queen"))
+					{
+						if (gameManager.board[posX + i][posY + i].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+						{
+							for (int j = 1; (posY + i - j) > posY; j++)
+							{
+								if (gameManager.board[posX + i - j][posY + i - j] != null)
+								{
+									breakFour = true;
+								}
+							}
+
+							if (!breakFour)
+                            {
+								checkAtX = posX + i;
+								checkAtY = posY + i;
+								checkBy = gameManager.board[posX + i][posY + i].name;
+								Debug.Log("TRUE AT " + (posX + i) + " " + (posY + i));
+								return true;
+							}
+						}
+					}
+				}
+			}
+			if(breakFive == false)
+            {
+				if (inBounds(posX - i, posY + i))
+				{
+					if (gameManager.board[posX - i][posY + i] != null && (gameManager.board[posX - i][posY + i].tag == "Bishop" || gameManager.board[posX - i][posY + i].tag == "Queen"))
+					{
+						if (gameManager.board[posX - i][posY + i].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+						{
+							for (int j = 1; (posY + i - j) > posY; j++)
+							{
+								if (gameManager.board[posX - i + j][posY + i - j] != null)
+								{
+									breakFive = true;
+								}
+							}
+
+							if (!breakFive)
+							{
+								checkAtX = posX - i;
+								checkAtY = posY + i;
+								checkBy = gameManager.board[posX - i][posY + i].name;
+								Debug.Log("TRUE AT " + (posX - i) + " " + (posY + i));
+								return true;
+							}
+						}
+					}
+				}
+			}
+			if(breakSix == false)
+            {
+				if (inBounds(posX + i, posY - i))
+				{
+					if (gameManager.board[posX + i][posY - i] != null && (gameManager.board[posX + i][posY - i].tag == "Bishop" || gameManager.board[posX + i][posY - i].tag == "Queen"))
+					{
+						if (gameManager.board[posX + i][posY - i].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+						{
+							for (int j = 1; (posY - i + j) < posY; j++)
+							{
+								if (gameManager.board[posX + i - j][posY - i + j] != null)
+								{
+									breakSix = true;
+								}
+							}
+
+							if (!breakSix)
+							{
+								checkAtX = posX + i;
+								checkAtY = posY - i;
+								checkBy = gameManager.board[posX + i][posY - i].name;
+								Debug.Log("TRUE AT " + (posX + i) + " " + (posY - i));
+								return true;
+							}
+						}
+					}
+				}
+			}
+        }
+
+        if ( inBounds(posX + 1, posY - 2) && gameManager.board[posX + 1][posY - 2] != null && gameManager.board[posX + 1][posY - 2].tag == "Knight" && gameManager.board[posX + 1][posY - 2].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+        {
+			checkAtX = posX + 1;
+			checkAtY = posY - 2;
+			checkBy = gameManager.board[posX + 1][posY - 2].name;
+			Debug.Log("TRUE AT " + (posX + 1) + " " + (posY - 2));
+			return true;
+        }
+		else if (inBounds(posX - 1, posY - 2) && gameManager.board[posX - 1][posY - 2] != null && gameManager.board[posX - 1][posY - 2].tag == "Knight" && gameManager.board[posX - 1][posY - 2].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+        {
+			checkAtX = posX - 1;
+			checkAtY = posY - 2;
+			checkBy = gameManager.board[posX - 1][posY - 2].name;
+			Debug.Log("TRUE AT " + (posX - 1) + " " + (posY - 2));
+			return true;
+        }
+		else if (inBounds(posX + 2, posY - 1) && gameManager.board[posX + 2][posY - 1] != null && gameManager.board[posX + 2][posY - 1].tag == "Knight" && gameManager.board[posX + 2][posY - 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+		{
+			checkAtX = posX + 2;
+			checkAtY = posY - 1;
+			Debug.Log("TRUE AT " + (posX + 2) + " " + (posY - 1));
+			checkBy = gameManager.board[posX + 2][posY - 1].name;
+			return true;
+		}
+		else if (inBounds(posX - 2, posY - 1) && gameManager.board[posX - 2][posY - 1] != null && gameManager.board[posX - 2][posY - 1].tag == "Knight" && gameManager.board[posX - 2][posY - 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+		{
+			checkAtX = posX - 2;
+			checkAtY = posY - 1;
+			Debug.Log("TRUE AT " + (posX - 2) + " " + (posY - 1));
+			checkBy = gameManager.board[posX - 2][posY - 1].name;
+			return true;
+		}
+		else if (inBounds(posX + 1, posY + 2) && gameManager.board[posX + 1][posY + 2] != null && gameManager.board[posX + 1][posY + 2].tag == "Knight" && gameManager.board[posX + 1][posY + 2].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+		{
+			checkAtX = posX + 1;
+			checkAtY = posY + 2;
+			Debug.Log("TRUE AT " + (posX + 1) + " " + (posY + 2));
+			checkBy = gameManager.board[posX + 1][posY + 2].name;
+			return true;
+		}
+		else if (inBounds(posX + 2, posY + 1) && gameManager.board[posX + 2][posY + 1] != null && gameManager.board[posX + 2][posY + 1].tag == "Knight" && gameManager.board[posX + 2][posY + 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+		{
+			checkAtX = posX + 2;
+			checkAtY = posY + 1;
+			Debug.Log("TRUE AT " + (posX + 2) + " " + (posY + 1));
+			Debug.Log(posX + " " + posY);
+			checkBy = gameManager.board[posX + 2][posY + 1].name;
+			return true;
+		}
+		else if (inBounds(posX - 1, posY + 2) && gameManager.board[posX - 1][posY + 2] != null && gameManager.board[posX - 1][posY + 2].tag == "Knight" && gameManager.board[posX - 1][posY + 2].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+		{
+			checkAtX = posX - 1;
+			checkAtY = posY + 2;
+			Debug.Log("TRUE AT " + (posX - 1) + " " + (posY + 2));
+			checkBy = gameManager.board[posX - 1][posY + 2].name;
+			return true;
+		}
+		else if (inBounds(posX - 2, posY + 1) && gameManager.board[posX - 2][posY + 1] != null && gameManager.board[posX - 2][posY + 1].tag == "Knight" && gameManager.board[posX - 2][posY + 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+		{
+			checkAtX = posX - 2;
+			checkAtY = posY + 1;
+			Debug.Log("TRUE AT " + (posX - 2) + " " + (posY + 1));
+			checkBy = gameManager.board[posX - 2][posY + 1].name;
+			return true;
+		}
+
+
+		return false;
+    }
+
+	private bool checkChecks(int oldPosX, int oldPosY, int newPosX, int newPosY, bool isCaptured)
+    {
+		GameObject oldObj = gameManager.board[oldPosX][oldPosY];
+		GameObject newObj = gameManager.board[newPosX][newPosY];
+		if (isCaptured)
+        {
+			gameManager.board[oldPosX][oldPosY] = null;
+			gameManager.board[newPosX][newPosY] = oldObj;
+            if (kingUnderAttack())
+            {
+				gameManager.board[oldPosX][oldPosY] = oldObj;
+				gameManager.board[newPosX][newPosY] = newObj;
+				return false;
+            }
+		}
+        else
+        {
+			gameManager.board[oldPosX][oldPosY] = newObj;
+			gameManager.board[newPosX][newPosY] = oldObj;
+			if (kingUnderAttack())
+			{
+				gameManager.board[oldPosX][oldPosY] = oldObj;
+				gameManager.board[newPosX][newPosY] = newObj;
+				return false;
+			}
+		}
+
+		gameManager.board[oldPosX][oldPosY] = oldObj;
+		gameManager.board[newPosX][newPosY] = newObj;
+		return true;
+    }
+
+	private bool inBounds(int x, int y)
+    {
+		if (x < 0 || x > 7 || y < 0 || y > 7)
+        {
+			return false;
+        }
+
 		return true;
     }
 

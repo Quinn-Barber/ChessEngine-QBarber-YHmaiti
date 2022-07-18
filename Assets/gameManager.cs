@@ -21,6 +21,8 @@ public class gameManager : MonoBehaviour
 	public static bool[] doubleUpBlack;
 	public static bool[] doubleUpWhite;
 	public static bool[] changeDoubleUp;
+	public static GameObject whiteQueen;
+	public static GameObject blackQueen;
 
 	// Start is called before the first frame update
 	void Start()
@@ -34,6 +36,7 @@ public class gameManager : MonoBehaviour
 		doubleUpBlack = new bool[8];
 		doubleUpWhite = new bool[8];
 		changeDoubleUp = new bool[16];
+
 
 		turnOrder = true;
 
@@ -55,6 +58,14 @@ public class gameManager : MonoBehaviour
 				if (Physics.Raycast(ray, out hitInfo))
 				{
 					GameObject newObject = (GameObject)hitInfo.collider.gameObject;
+					if(newObject.name == "WhiteQueen")
+                    {
+						whiteQueen = newObject;
+                    }
+					else if(newObject.name == "BlackQueen")
+                    {
+						blackQueen = newObject;
+                    }
 					board[i][j] = newObject;
 				}
 				else
