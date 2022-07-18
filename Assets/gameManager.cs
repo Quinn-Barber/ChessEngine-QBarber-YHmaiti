@@ -18,10 +18,9 @@ public class gameManager : MonoBehaviour
 	// 2D Array for the pieces on the chess board
 	public static GameObject[][] board;
 	public static bool[][] pieceMoved;
-
-	// Variables for enPassent management
-	public static GameObject lastPiece = null;
-	public static bool doubleUp = false;
+	public static bool[] doubleUpBlack;
+	public static bool[] doubleUpWhite;
+	public static bool[] changeDoubleUp;
 
 	// Start is called before the first frame update
 	void Start()
@@ -32,11 +31,17 @@ public class gameManager : MonoBehaviour
 		// Initialize the chess board and turn order (true is whites move false is blacks move)
 		pieceMoved = new bool[8][];
 		board = new GameObject[8][];
+		doubleUpBlack = new bool[8];
+		doubleUpWhite = new bool[8];
+		changeDoubleUp = new bool[16];
+
 		turnOrder = true;
 
 		// Fill the chess board with each starting piece (using collisions based on rays from certain positions)
 		for (int i = 0; i < 8; i++)
 		{
+			doubleUpWhite[i] = false;
+			doubleUpBlack[i] = false;
 			pieceMoved[i] = new bool[8];			
 			board[i] = new GameObject[8];
 			for (int j = 0; j < 8; j++)

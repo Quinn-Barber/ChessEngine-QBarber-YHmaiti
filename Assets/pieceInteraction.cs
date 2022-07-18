@@ -28,6 +28,8 @@ public class pieceInteraction : MonoBehaviour
 
 	// Variable for castling
 	bool castle = false;
+	bool enPassent = false;
+	bool promotion = false;
 
 	// Start is called before the first frame update 
 	void Start()
@@ -68,7 +70,27 @@ public class pieceInteraction : MonoBehaviour
         beingHeld = false;
 		pieceCaptured = false;
 		castle = false;
+		enPassent = false;
+		promotion = false;
 
+		for(int i = 0; i < 16; i++)
+        {
+            if (gameManager.changeDoubleUp[i] == false)
+            {
+				if (i <= 7)
+				{
+					gameManager.doubleUpBlack[i] = false;
+				}
+				else
+				{
+					gameManager.doubleUpWhite[i - 8] = false;
+				}
+            }
+            else
+            {
+				gameManager.changeDoubleUp[i] = false;
+			}
+        }
 		// The potential new position of the piece is the current position of the mouse snapped to the nearest square
 		Vector2 newPos = new Vector2((float)Math.Round(this.gameObject.transform.position.x), (float)Math.Round(this.gameObject.transform.position.y));
 
@@ -143,18 +165,54 @@ public class pieceInteraction : MonoBehaviour
 			return;
 		}
 
+        if (enPassent)
+        {
+			if(this.gameObject.name.ToCharArray()[0] == 'B')
+            {
+				gameManager.board[(int)newPos.x - 1][(int)newPos.y].SetActive(false);
+				gameManager.board[(int)newPos.x - 1][(int)newPos.y] = null;
+				this.gameObject.GetComponent<Collider>().enabled = true;
+				this.gameObject.transform.position = newPos;
+
+				GameObject temp = gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1];
+				gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1] = null;
+				gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] = temp;
+			}
+            else
+            {
+				gameManager.board[(int)newPos.x - 1][(int)newPos.y - 2].SetActive(false);
+				gameManager.board[(int)newPos.x - 1][(int)newPos.y - 2] = null;
+				this.gameObject.GetComponent<Collider>().enabled = true;
+				this.gameObject.transform.position = newPos;
+
+				GameObject temp = gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1];
+				gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1] = null;
+				gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] = temp;
+			}
+
+			gameManager.turnOrder = !gameManager.turnOrder;
+			return;
+        }
+
+		/* TO BE IMPLEMENTED
+		if(promotion)
+        {
+			//GameObject replace = GameObject.Instantiate("WhiteQueen");
+
+			GameObject temp = gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1];
+			gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1] = null;
+			gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] = temp;
+
+			gameManager.turnOrder = !gameManager.turnOrder;
+			return;
+		}*/
+
 		// If it is legal and hasn't collided with anything, update the position and board as necessary (turn back on the collision as well)
 		this.gameObject.GetComponent<Collider>().enabled = true;
 		this.gameObject.transform.position = newPos;
 		
 		// INDICATE PIECE HAS MOVEN
 		gameManager.pieceMoved[(int)origPos.x - 1][(int)origPos.y - 1] = true;
-
-		// EN PASSENT VARIABLES
-		if (gameManager.doubleUp == true && gameManager.lastPiece != this.gameObject)
-        {
-			gameManager.doubleUp = false;
-        }
 
 		// UPDATE THE BOARD TO BE CORRECT
 		GameObject tmp = gameManager.board[(int)origPos.x - 1][(int)origPos.y - 1];
@@ -483,7 +541,7 @@ public class pieceInteraction : MonoBehaviour
 		return true;
     }
 
-	// NEED TO IMPLEMENT EN PASSENT AND PROMOTION
+	// NEED TO IMPLEMENT PROMOTION
 	private bool PawnMovement(Vector2 newPos)
     {
 		if (this.gameObject.name.ToCharArray()[0] == 'B')
@@ -507,9 +565,15 @@ public class pieceInteraction : MonoBehaviour
 				}
 				if (gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] == null)
 				{
-					if(gameManager.doubleUp == true && gameManager.lastPiece)
-					Debug.Log("Not valid pawn move");
-					return false;
+                    if (gameManager.doubleUpWhite[(int)newPos.x-1] == true && newPos.y == 3)
+                    {
+						enPassent = true;
+                    }
+                    else
+                    {
+						Debug.Log("Not valid pawn move");
+						return false;
+					}
 				}
 			}
 			if (newPos.y == origPos.y - 2)
@@ -524,14 +588,18 @@ public class pieceInteraction : MonoBehaviour
 					Debug.Log("Not valid pawn move");
 					return false;
 				}
-				gameManager.doubleUp = true;
-				gameManager.lastPiece = this.gameObject;
+                gameManager.doubleUpBlack[(int)origPos.x - 1] = true;
+				gameManager.changeDoubleUp[(int)origPos.x - 1] = true;
 			}
 			if (newPos.x == origPos.x && gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] != null)
 			{
 				Debug.Log("Not valid pawn move");
 				return false;
 			}
+			if( newPos.y == 1)
+            {
+				promotion = true;
+            }
 		}
 		else
 		{
@@ -554,8 +622,15 @@ public class pieceInteraction : MonoBehaviour
 				}
 				if (gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] == null)
 				{
-					Debug.Log("Not valid pawn move");
-					return false;
+					if (gameManager.doubleUpBlack[(int)newPos.x - 1] == true && newPos.y == 6)
+					{
+						enPassent = true;
+					}
+					else
+					{
+						Debug.Log("Not valid pawn move here");
+						return false;
+					}
 				}
 			}
 			if (newPos.y == origPos.y + 2)
@@ -570,14 +645,18 @@ public class pieceInteraction : MonoBehaviour
 					Debug.Log("Not valid pawn move");
 					return false;
 				}
-				gameManager.doubleUp = true;
-				gameManager.lastPiece = this.gameObject;
+                gameManager.doubleUpWhite[(int) origPos.x - 1] = true;
+				gameManager.changeDoubleUp[(int)origPos.x - 1 + 8] = true;
 			}
 			if (newPos.x == origPos.x && gameManager.board[(int)newPos.x - 1][(int)newPos.y - 1] != null)
 			{
 				Debug.Log("Not valid pawn move");
 				return false;
 			}
+			if( newPos.y == 8)
+            {
+				promotion = true;
+            }
 		}
 		return true;
     }
