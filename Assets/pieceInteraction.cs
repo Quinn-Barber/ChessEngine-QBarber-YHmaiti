@@ -1005,6 +1005,42 @@ public class pieceInteraction : MonoBehaviour
 			return true;
 		}
 
+		if( this.gameObject.name.ToCharArray()[0] == 'B')
+        {
+			if (inBounds(posX - 1, posY - 1))
+			{
+                if (gameManager.board[posX - 1][posY - 1] != null && gameManager.board[posX - 1][posY - 1].tag == "Pawn" && gameManager.board[posX - 1][posY - 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+                {
+					return true;
+				}
+			}
+
+			if (inBounds(posX + 1, posY - 1))
+			{
+				if (gameManager.board[posX + 1][posY - 1] != null && gameManager.board[posX + 1][posY - 1].tag == "Pawn" && gameManager.board[posX + 1][posY - 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+				{
+					return true;
+				}
+			}
+		}
+        else
+        {
+			if (inBounds(posX + 1, posY + 1))
+			{
+				if(gameManager.board[posX + 1][posY + 1] != null && gameManager.board[posX + 1][posY + 1].tag == "Pawn" && gameManager.board[posX + 1][posY + 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+                {
+					return true;
+				}
+			}
+
+			if (inBounds(posX - 1, posY + 1))
+			{
+				if(gameManager.board[posX - 1][posY + 1] != null && gameManager.board[posX - 1][posY + 1].tag == "Pawn" && gameManager.board[posX - 1][posY + 1].name.ToCharArray()[0] != this.gameObject.name.ToCharArray()[0])
+                {
+					return true;
+				}
+			}
+		}
 
 		return false;
     }
