@@ -2,10 +2,9 @@
 
 ### Involves all facets of modern day chess, with multiple moving parts
 
-### Playable as of now, however the project is still underway. If you would like to, try a game!
+### Playable now. If you would like to, try a game!
 
 ### Accessible at https://quinn-barber.github.io/ChessEngine-QBarber-YHmaiti/
 
-
-* TO FIX:
-Castle through check
+### If you would like to contribute, take a look at our issues and feel free to try to understand
+### the code and send PRs to fix them!
